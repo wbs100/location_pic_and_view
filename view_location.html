@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Open Google Maps from Inputs</title>
+</head>
+<body>
+
+  <h2>Enter Coordinates:</h2>
+
+  <label>Latitude: <input type="text" id="lat" placeholder="e.g. 6.9271"></label><br><br>
+  <label>Longitude: <input type="text" id="lon" placeholder="e.g. 79.8612"></label><br><br>
+
+  <button onclick="openMap()">🗺️ View on Google Maps</button>
+
+  <script>
+    function openMap() {
+      const lat = document.getElementById("lat").value.trim();
+      const lon = document.getElementById("lon").value.trim();
+
+      if (lat === "" || lon === "") {
+        alert("Please enter both latitude and longitude.");
+        return;
+      }
+
+      // Construct Google Maps URL
+      const mapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
+
+      // Open in new tab
+      window.open(mapsUrl, "_blank");
+    }
+  </script>
+
+</body>
+</html>

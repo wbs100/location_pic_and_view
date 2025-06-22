@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Get Current Location</title>
+</head>
+<body>
+
+  <button onclick="getLocation()">📍 Get Current Location</button>
+  <p id="output">Location will appear here...</p>
+
+  <script>
+    function getLocation() {
+      const output = document.getElementById("output");
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            output.innerText = `Latitude: ${lat}, Longitude: ${lon}`;
+          },
+          (error) => {
+            switch(error.code) {
+              case error.PERMISSION_DENIED:
+                output.innerText = "❌ User denied the request for Geolocation.";
+                break;
+              case error.POSITION_UNAVAILABLE:
+                output.innerText = "❌ Location information is unavailable.";
+                break;
+              case error.TIMEOUT:
+                output.innerText = "❌ The request to get user location timed out.";
+                break;
+              case error.UNKNOWN_ERROR:
+                output.innerText = "❌ An unknown error occurred.";
+                break;
+            }
+          }
+        );
+      } else {
+        output.innerText = "❌ Geolocation is not supported by this browser.";
+      }
+    }
+  </script>
+
+</body>
+</html>
