@@ -1,47 +1,257 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-  <title>Get Current Location</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Get Current Location</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
 
-  <button onclick="getLocation()">📍 Get Current Location</button>
-  <a href="view_location.html" target="_blank">View Location</a>
-  <p id="output">Location will appear here...</p>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+        <h1 class="text-2xl font-bold text-gray-800 mb-4 text-center">Location Finder</h1>
 
-  <script>
-    function getLocation() {
-      const output = document.getElementById("output");
+        <div class="flex flex-col space-y-4">
+            <button onclick="getLocation()"
+                class="flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+                id="locationBtn">
+                <i class="fas fa-location-crosshairs"></i> Get Current Location
+            </button>
 
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const lat = position.coords.latitude;
-            const lon = position.coords.longitude;
-            output.innerText = `Latitude: ${lat}, Longitude: ${lon}`;
-          },
-          (error) => {
-            switch(error.code) {
-              case error.PERMISSION_DENIED:
-                output.innerText = "❌ User denied the request for Geolocation.";
-                break;
-              case error.POSITION_UNAVAILABLE:
-                output.innerText = "❌ Location information is unavailable.";
-                break;
-              case error.TIMEOUT:
-                output.innerText = "❌ The request to get user location timed out.";
-                break;
-              case error.UNKNOWN_ERROR:
-                output.innerText = "❌ An unknown error occurred.";
-                break;
+            <a href="view_location.html" target="_blank"
+                class="flex items-center justify-center gap-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 px-4 rounded-lg transition-colors"
+                id="viewLocationBtn">
+                <i class="fas fa-map-location-dot"></i> View Location
+            </a>
+        </div>
+
+        <div id="loading" class="hidden mt-4 text-center">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+            <p class="mt-2 text-gray-600">Getting your location...</p>
+        </div>
+
+        <div id="output" class="mt-4 p-4 bg-gray-50 rounded-lg text-gray-700 min-h-20">
+            <p class="text-center text-gray-500">Location will appear here...</p>
+        </div>
+
+        <div id="gpsStatus" class="mt-4 p-3 rounded-lg hidden">
+            <p class="flex items-center gap-2">
+                <i class="fas fa-circle text-gray-400"></i>
+                <span>GPS Status: Checking...</span>
+            </p>
+        </div>
+    </div>
+
+    <!-- Notification Popup -->
+    <div id="notification"
+        class="fixed bottom-4 right-4 bg-white shadow-lg rounded-lg p-4 max-w-xs hidden transform translate-x-full transition-transform duration-300">
+        <div class="flex items-start gap-3">
+            <i id="notificationIcon" class="fas fa-info-circle text-xl mt-1"></i>
+            <div>
+                <h3 id="notificationTitle" class="font-bold text-gray-800"></h3>
+                <p id="notificationMessage" class="text-gray-600 text-sm"></p>
+            </div>
+            <button onclick="hideNotification()" class="ml-auto text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Store coordinates globally
+        let currentLocation = { lat: null, lng: null };
+
+        // Check GPS status when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            checkGPSStatus();
+            updateViewLocationButton();
+        });
+
+        function updateViewLocationButton() {
+            const viewLocationBtn = document.getElementById('viewLocationBtn');
+            if (currentLocation.lat && currentLocation.lng) {
+                viewLocationBtn.href = `view_location.html?lat=${currentLocation.lat}&lng=${currentLocation.lng}`;
+                viewLocationBtn.classList.remove('bg-gray-200');
+                viewLocationBtn.classList.add('bg-green-500', 'text-white', 'hover:bg-green-600');
+            } else {
+                viewLocationBtn.href = 'view_location.html';
+                viewLocationBtn.classList.remove('bg-green-500', 'text-white', 'hover:bg-green-600');
+                viewLocationBtn.classList.add('bg-gray-200', 'hover:bg-gray-300');
             }
-          }
-        );
-      } else {
-        output.innerText = "❌ Geolocation is not supported by this browser.";
-      }
-    }
-  </script>
+        }
 
+        function showNotification(type, title, message) {
+            const notification = document.getElementById('notification');
+            const icon = document.getElementById('notificationIcon');
+            const notificationTitle = document.getElementById('notificationTitle');
+            const notificationMessage = document.getElementById('notificationMessage');
+
+            if (type === 'error') {
+                icon.className = 'fas fa-exclamation-circle text-red-500 text-xl mt-1';
+            } else if (type === 'success') {
+                icon.className = 'fas fa-check-circle text-green-500 text-xl mt-1';
+            } else {
+                icon.className = 'fas fa-info-circle text-blue-500 text-xl mt-1';
+            }
+
+            notificationTitle.textContent = title;
+            notificationMessage.textContent = message;
+
+            notification.classList.remove('hidden');
+            notification.classList.remove('translate-x-full');
+            notification.classList.add('translate-x-0');
+
+            setTimeout(hideNotification, 5000);
+        }
+
+        function hideNotification() {
+            const notification = document.getElementById('notification');
+            notification.classList.remove('translate-x-0');
+            notification.classList.add('translate-x-full');
+            setTimeout(() => notification.classList.add('hidden'), 300);
+        }
+
+        function checkGPSStatus() {
+            const gpsStatus = document.getElementById('gpsStatus');
+            const statusText = gpsStatus.querySelector('span');
+            const statusIcon = gpsStatus.querySelector('i');
+
+            if (!navigator.geolocation) {
+                gpsStatus.className = 'mt-4 p-3 rounded-lg bg-red-100';
+                statusText.textContent = 'GPS Status: Not supported by browser';
+                statusIcon.className = 'fas fa-circle text-red-500';
+                gpsStatus.classList.remove('hidden');
+                return;
+            }
+
+            navigator.permissions && navigator.permissions.query({ name: 'geolocation' })
+                .then(permissionStatus => {
+                    updateGPSStatus(permissionStatus.state);
+
+                    permissionStatus.onchange = () => {
+                        updateGPSStatus(permissionStatus.state);
+                    };
+                })
+                .catch(() => {
+                    gpsStatus.className = 'mt-4 p-3 rounded-lg bg-blue-100';
+                    statusText.textContent = 'GPS Status: Ready';
+                    statusIcon.className = 'fas fa-circle text-blue-500';
+                    gpsStatus.classList.remove('hidden');
+                });
+        }
+
+        function updateGPSStatus(state) {
+            const gpsStatus = document.getElementById('gpsStatus');
+            const statusText = gpsStatus.querySelector('span');
+            const statusIcon = gpsStatus.querySelector('i');
+
+            gpsStatus.classList.remove('hidden');
+
+            if (state === 'granted') {
+                gpsStatus.className = 'mt-4 p-3 rounded-lg bg-green-100';
+                statusText.textContent = 'GPS Status: Enabled';
+                statusIcon.className = 'fas fa-circle text-green-500';
+            } else if (state === 'prompt') {
+                gpsStatus.className = 'mt-4 p-3 rounded-lg bg-yellow-100';
+                statusText.textContent = 'GPS Status: Click "Get Location" to enable';
+                statusIcon.className = 'fas fa-circle text-yellow-500';
+            } else if (state === 'denied') {
+                gpsStatus.className = 'mt-4 p-3 rounded-lg bg-red-100';
+                statusText.textContent = 'GPS Status: Disabled (check browser settings)';
+                statusIcon.className = 'fas fa-circle text-red-500';
+            }
+        }
+
+        function getLocation() {
+            const output = document.getElementById("output");
+            const loading = document.getElementById("loading");
+            const locationBtn = document.getElementById("locationBtn");
+
+            loading.classList.remove("hidden");
+            locationBtn.disabled = true;
+            locationBtn.classList.add("opacity-50", "cursor-not-allowed");
+            output.innerHTML = '<p class="text-center text-gray-500">Getting location...</p>';
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        currentLocation.lat = position.coords.latitude.toFixed(6);
+                        currentLocation.lng = position.coords.longitude.toFixed(6);
+                        const accuracy = position.coords.accuracy.toFixed(2);
+                        const timestamp = new Date(position.timestamp).toLocaleString();
+
+                        output.innerHTML = `
+              <div class="space-y-2">
+                <p class="font-semibold text-green-600 flex items-center gap-2">
+                  <i class="fas fa-check-circle"></i> Location found!
+                </p>
+                <p><span class="font-medium">Latitude:</span> ${currentLocation.lat}</p>
+                <p><span class="font-medium">Longitude:</span> ${currentLocation.lng}</p>
+                <p><span class="font-medium">Accuracy:</span> ±${accuracy} meters</p>
+                <p><span class="font-medium">Time:</span> ${timestamp}</p>
+                <a href="https://www.google.com/maps?q=${currentLocation.lat},${currentLocation.lng}" target="_blank" 
+                   class="inline-block mt-2 text-blue-500 hover:underline flex items-center gap-1">
+                  <i class="fas fa-map-marked-alt"></i> View on Google Maps
+                </a>
+              </div>
+            `;
+
+                        updateViewLocationButton();
+                        showNotification('success', 'Location Found', `Your coordinates: ${currentLocation.lat}, ${currentLocation.lng}`);
+                    },
+                    (error) => {
+                        let errorMessage = "";
+                        switch (error.code) {
+                            case error.PERMISSION_DENIED:
+                                errorMessage = "User denied the request for Geolocation.";
+                                showNotification('error', 'Permission Denied', 'Please enable location access in your browser settings.');
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                errorMessage = "Location information is unavailable.";
+                                showNotification('error', 'Location Unavailable', 'Your device cannot determine your current location.');
+                                break;
+                            case error.TIMEOUT:
+                                errorMessage = "The request to get user location timed out.";
+                                showNotification('error', 'Timeout', 'The request to get your location took too long. Please try again.');
+                                break;
+                            case error.UNKNOWN_ERROR:
+                                errorMessage = "An unknown error occurred.";
+                                showNotification('error', 'Error', 'An unknown error occurred while getting your location.');
+                                break;
+                        }
+
+                        output.innerHTML = `
+              <p class="text-red-500 flex items-center gap-2">
+                <i class="fas fa-exclamation-triangle"></i> ${errorMessage}
+              </p>
+            `;
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
+                    }
+                ).finally(() => {
+                    loading.classList.add("hidden");
+                    locationBtn.disabled = false;
+                    locationBtn.classList.remove("opacity-50", "cursor-not-allowed");
+                    checkGPSStatus();
+                });
+            } else {
+                output.innerHTML = `
+          <p class="text-red-500 flex items-center gap-2">
+            <i class="fas fa-exclamation-triangle"></i> Geolocation is not supported by this browser.
+          </p>
+        `;
+                loading.classList.add("hidden");
+                locationBtn.disabled = false;
+                locationBtn.classList.remove("opacity-50", "cursor-not-allowed");
+                showNotification('error', 'Not Supported', 'Geolocation is not supported by your browser.');
+            }
+        }
+    </script>
 </body>
+
 </html>
